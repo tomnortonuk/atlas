@@ -229,11 +229,13 @@ atlas/
 ## 🛠️ Tech Stack
 
 - **Framework:** Nuxt 3 (Vue 3, Nitro server)
-- **Database:** SQLite + Drizzle ORM
+- **Database:** SQLite (local dev) / **Turso** (production) + Drizzle ORM
 - **UI:** Nuxt UI, Tailwind CSS
 - **Charts:** Chart.js, Vue ECharts (ready to use)
 - **Auth:** JWT (jsonwebtoken) + bcrypt
 - **Utilities:** VueUse, date-fns, Zod
+
+**Why Turso?** 5-7x faster than Cloudflare D1, 9 GB free tier, edge replicas, 100% SQLite compatible!
 
 ---
 

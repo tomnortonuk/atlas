@@ -265,26 +265,49 @@ Brand guidelines, logos, and design assets: [atlas-prep repository](https://gith
 ## 📖 Documentation
 
 - **[DATA-LOADING-GUIDE.md](./DATA-LOADING-GUIDE.md)** - Comprehensive data loading documentation for all 10 sources
+- **[TURSO-SETUP.md](./TURSO-SETUP.md)** - Turso database setup guide (recommended for production)
+- **[DATABASE-COMPARISON.md](./DATABASE-COMPARISON.md)** - Complete database options comparison
 - **[atlas-prep repository](https://github.com/tomnortonuk/atlas-prep)** - Full architectural documentation, prompt prep, brand guidelines
 
 ---
 
 ## 🚢 Deployment
 
-### Cloudflare Pages (Recommended)
+### Cloudflare Pages + Turso (Recommended)
 
-ATLAS is designed for Cloudflare Pages with D1 (SQLite edge database).
+ATLAS is designed for Cloudflare Pages with **Turso** (distributed SQLite - 5-7x faster than D1).
 
-1. Push repository to GitHub
-2. Connect to Cloudflare Pages
-3. Configure build:
+**Setup:**
+
+1. **Create Turso database** (see [`TURSO-SETUP.md`](./TURSO-SETUP.md)):
+   ```bash
+   turso db create atlas --location lhr
+   turso db show atlas --url
+   turso db tokens create atlas
+   ```
+
+2. **Push repository to GitHub**
+
+3. **Connect to Cloudflare Pages**
+
+4. **Configure build:**
    - **Build command:** `npm run build`
    - **Output directory:** `.output/public`
-4. Add environment variables:
-   - `DATABASE_URL` - Cloudflare D1 binding
+
+5. **Add environment variables:**
+   - `DATABASE_URL` - `libsql://atlas-<your-org>.turso.io`
+   - `TURSO_AUTH_TOKEN` - Token from Turso
    - `JWT_SECRET` - Random secret key
 
-See [Nuxt on Cloudflare](https://nuxt.com/deploy/cloudflare) for details.
+**Why Turso over D1?**
+- ✅ 5-7x faster for complex queries
+- ✅ 9 GB free tier (vs 2 GB max for D1)
+- ✅ Better developer tools (branching, web console)
+- ✅ Same Drizzle schema (drop-in replacement)
+
+See [`DATABASE-COMPARISON.md`](./DATABASE-COMPARISON.md) for detailed comparison.
+
+See [Nuxt on Cloudflare](https://nuxt.com/deploy/cloudflare) for deployment details.
 
 ### Alternative: Docker
 
@@ -299,7 +322,7 @@ docker run -p 3000:3000 -v $(pwd)/data:/app/data atlas
 
 - **Framework:** [Nuxt 3](https://nuxt.com/) (Vue 3, Nitro server)
 - **UI:** [Nuxt UI](https://ui.nuxt.com/), [Tailwind CSS](https://tailwindcss.com/)
-- **Database:** [SQLite](https://www.sqlite.org/) (via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3))
+- **Database:** [SQLite](https://www.sqlite.org/) (local) / [Turso](https://turso.tech/) (production) - **5-7x faster than D1!**
 - **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
 - **Charts:** [Chart.js](https://www.chartjs.org/), [Vue ECharts](https://github.com/ecomfe/vue-echarts)
 - **Auth:** bcrypt + JWT (via [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken))
