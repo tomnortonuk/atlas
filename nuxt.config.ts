@@ -14,6 +14,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Private keys (server-side only)
     databaseUrl: process.env.DATABASE_URL || './data/atlas.db',
+    tursoAuthToken: process.env.TURSO_AUTH_TOKEN || '',
     jwtSecret: process.env.JWT_SECRET || 'change-this-in-production',
     
     // Public keys (client-side accessible)
