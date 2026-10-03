@@ -2,8 +2,8 @@
  * ODS (Organization Data Service) Loader
  * Fetches NHS organization data from ODS API
  */
+import { pathToFileURL } from 'node:url'
 import { db, schema } from '../../db'
-import { eq } from 'drizzle-orm'
 
 const ODS_API_BASE = 'https://directory.spineservices.nhs.uk/ORD/2-0-0'
 
@@ -79,7 +79,8 @@ async function loadOrganizations() {
   for (const role of rolesToLoad) {
     console.log(`\n📋 Loading ${role.name} organizations...`)
     
-    let offset = 0
+    // ODS Offset is 1-based. Offset 0 is rejected.
+    let offset = 1
     const limit = 1000
     let hasMore = true
     
@@ -91,30 +92,33 @@ async function loadOrganizations() {
         break
       }
       
-      for (const org of orgs) {
-        try {
-          await db.insert(schema.organizations).values({
-            odsCode: org.OrgId,
-            organizationName: org.Name,
-            organizationType: role.name,
-            status: org.Status,
-            addressLine1: org.GeoLoc?.Location?.AddrLn1,
-            city: org.GeoLoc?.Location?.Town,
-            postcode: org.GeoLoc?.Location?.PostCode || org.PostCode,
-            lastUpdated: org.LastChangeDate,
-          }).onConflictDoUpdate({
-            target: schema.organizations.odsCode,
-            set: {
-              organizationName: org.Name,
-              status: org.Status,
-              lastUpdated: org.LastChangeDate,
-            },
-          })
-          
-          totalLoaded++
-        } catch (error) {
-          console.error(`Error inserting ${org.OrgId}: ${error}`)
-        }
+      const rows = orgs.map(org => ({
+        odsCode: org.OrgId,
+        organizationName: org.Name,
+        organizationType: role.name,
+        status: org.Status,
+        addressLine1: org.GeoLoc?.Location?.AddrLn1,
+        city: org.GeoLoc?.Location?.Town,
+        postcode: org.GeoLoc?.Location?.PostCode || org.PostCode,
+        lastUpdated: org.LastChangeDate,
+      }))
+
+      try {
+        db.transaction((tx) => {
+          for (const row of rows) {
+            tx.insert(schema.organizations).values(row).onConflictDoUpdate({
+              target: schema.organizations.odsCode,
+              set: {
+                organizationName: row.organizationName,
+                status: row.status,
+                lastUpdated: row.lastUpdated,
+              },
+            }).run()
+          }
+        })
+        totalLoaded += rows.length
+      } catch (error) {
+        console.error(`Error inserting ${role.name} page at offset ${offset}: ${error}`)
       }
       
       console.log(`  Loaded ${orgs.length} organizations (offset: ${offset})`)
@@ -134,7 +138,7 @@ async function loadOrganizations() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   loadOrganizations()
     .then(() => {
       console.log('✅ ODS load complete')
